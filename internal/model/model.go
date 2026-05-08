@@ -35,8 +35,9 @@ type CreateBookingRequest struct {
 	EndTime        string `json:"end_time"`   // RFC3339
 	AttendeesCount int    `json:"attendees_count"`
 	Notes          string `json:"notes"`
+	CancelCode     string `json:"cancel_code"`
 }
 
 type CancelBookingRequest struct {
-	EmployeeID string `json:"employee_id"`
+	CancelCode string `json:"cancel_code"`
 }

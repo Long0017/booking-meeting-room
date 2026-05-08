@@ -82,6 +82,14 @@ func (h *Handler) createBooking(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "ກະລຸນາໃສ່ຊື່ກອງປະຊຸມ")
 		return
 	}
+	if strings.TrimSpace(req.CancelCode) == "" {
+		jsonError(w, http.StatusBadRequest, "ກະລຸນາໃສ່ລະຫັດຢືນຢັນ")
+		return
+	}
+	if len(strings.TrimSpace(req.CancelCode)) < 4 {
+		jsonError(w, http.StatusBadRequest, "ລະຫັດຢືນຢັນຕ້ອງມີຢ່າງໜ້ອຍ 4 ຕົວ")
+		return
+	}
 
 	startTime, err := time.Parse(time.RFC3339, req.StartTime)
 	if err != nil {
@@ -107,10 +115,10 @@ func (h *Handler) createBooking(w http.ResponseWriter, r *http.Request) {
 
 	var id int
 	err = h.db.QueryRow(context.Background(),
-		`INSERT INTO bookings (room_id, employee_id, department, title, start_time, end_time, attendees_count, notes)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+		`INSERT INTO bookings (room_id, employee_id, department, title, start_time, end_time, attendees_count, notes, cancel_code)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
 		req.RoomID, req.EmployeeID, req.Department, req.Title,
-		startTime, endTime, req.AttendeesCount, req.Notes,
+		startTime, endTime, req.AttendeesCount, req.Notes, strings.TrimSpace(req.CancelCode),
 	).Scan(&id)
 
 	if err != nil {
@@ -146,15 +154,15 @@ func (h *Handler) cancelBooking(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
-	if strings.TrimSpace(req.EmployeeID) == "" {
-		jsonError(w, http.StatusBadRequest, "ກະລຸນາໃສ່ລະຫັດພະນັກງານ")
+	if strings.TrimSpace(req.CancelCode) == "" {
+		jsonError(w, http.StatusBadRequest, "ກະລຸນາໃສ່ລະຫັດຢືນຢັນ")
 		return
 	}
 
-	var ownerID, status string
+	var storedCode, status string
 	err = h.db.QueryRow(context.Background(),
-		`SELECT employee_id, status FROM bookings WHERE id = $1`, id,
-	).Scan(&ownerID, &status)
+		`SELECT cancel_code, status FROM bookings WHERE id = $1`, id,
+	).Scan(&storedCode, &status)
 
 	if errors.Is(err, pgx.ErrNoRows) {
 		jsonError(w, http.StatusNotFound, "ບໍ່ພົບຂໍ້ມູນການຈອງ")
@@ -164,8 +172,8 @@ func (h *Handler) cancelBooking(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "failed to find booking")
 		return
 	}
-	if ownerID != req.EmployeeID {
-		jsonError(w, http.StatusForbidden, "ລະຫັດພະນັກງານບໍ່ຕົງກັບຜູ້ຈອງ ບໍ່ສາມາດຍົກເລີກໄດ້")
+	if storedCode != strings.TrimSpace(req.CancelCode) {
+		jsonError(w, http.StatusForbidden, "ລະຫັດຢືນຢັນບໍ່ຖືກຕ້ອງ ບໍ່ສາມາດຍົກເລີກໄດ້")
 		return
 	}
 	if status == "cancelled" {
