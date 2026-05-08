@@ -21,6 +21,7 @@ type Booking struct {
 	StartTime      time.Time `json:"start_time"`
 	EndTime        time.Time `json:"end_time"`
 	AttendeesCount int       `json:"attendees_count"`
+	Phone          string    `json:"phone,omitempty"`
 	Notes          string    `json:"notes"`
 	Status         string    `json:"status"`
 	CreatedAt      time.Time `json:"created_at"`
@@ -34,6 +35,7 @@ type CreateBookingRequest struct {
 	StartTime      string `json:"start_time"` // RFC3339
 	EndTime        string `json:"end_time"`   // RFC3339
 	AttendeesCount int    `json:"attendees_count"`
+	Phone          string `json:"phone"`
 	Notes          string `json:"notes"`
 	CancelCode     string `json:"cancel_code"`
 }

@@ -25,7 +25,7 @@ func (h *Handler) listBookings(w http.ResponseWriter, r *http.Request) {
 
 	query := `
 		SELECT b.id, b.room_id, r.name, b.employee_id, b.department, b.title,
-		       b.start_time, b.end_time, b.attendees_count, COALESCE(b.notes,''), b.status, b.created_at
+		       b.start_time, b.end_time, b.attendees_count, COALESCE(b.phone,''), COALESCE(b.notes,''), b.status, b.created_at
 		FROM bookings b JOIN rooms r ON r.id = b.room_id
 		WHERE b.status = 'confirmed'`
 
@@ -54,7 +54,7 @@ func (h *Handler) listBookings(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var b model.Booking
 		if err := rows.Scan(&b.ID, &b.RoomID, &b.RoomName, &b.EmployeeID, &b.Department,
-			&b.Title, &b.StartTime, &b.EndTime, &b.AttendeesCount, &b.Notes, &b.Status, &b.CreatedAt); err != nil {
+			&b.Title, &b.StartTime, &b.EndTime, &b.AttendeesCount, &b.Phone, &b.Notes, &b.Status, &b.CreatedAt); err != nil {
 			jsonError(w, http.StatusInternalServerError, "failed to scan booking")
 			return
 		}
@@ -115,10 +115,10 @@ func (h *Handler) createBooking(w http.ResponseWriter, r *http.Request) {
 
 	var id int
 	err = h.db.QueryRow(context.Background(),
-		`INSERT INTO bookings (room_id, employee_id, department, title, start_time, end_time, attendees_count, notes, cancel_code)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+		`INSERT INTO bookings (room_id, employee_id, department, title, start_time, end_time, attendees_count, phone, notes, cancel_code)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
 		req.RoomID, req.EmployeeID, req.Department, req.Title,
-		startTime, endTime, req.AttendeesCount, req.Notes, strings.TrimSpace(req.CancelCode),
+		startTime, endTime, req.AttendeesCount, strings.TrimSpace(req.Phone), req.Notes, strings.TrimSpace(req.CancelCode),
 	).Scan(&id)
 
 	if err != nil {
@@ -134,10 +134,10 @@ func (h *Handler) createBooking(w http.ResponseWriter, r *http.Request) {
 	var b model.Booking
 	h.db.QueryRow(context.Background(),
 		`SELECT b.id, b.room_id, r.name, b.employee_id, b.department, b.title,
-		        b.start_time, b.end_time, b.attendees_count, COALESCE(b.notes,''), b.status, b.created_at
+		        b.start_time, b.end_time, b.attendees_count, COALESCE(b.phone,''), COALESCE(b.notes,''), b.status, b.created_at
 		 FROM bookings b JOIN rooms r ON r.id = b.room_id WHERE b.id = $1`, id,
 	).Scan(&b.ID, &b.RoomID, &b.RoomName, &b.EmployeeID, &b.Department,
-		&b.Title, &b.StartTime, &b.EndTime, &b.AttendeesCount, &b.Notes, &b.Status, &b.CreatedAt)
+		&b.Title, &b.StartTime, &b.EndTime, &b.AttendeesCount, &b.Phone, &b.Notes, &b.Status, &b.CreatedAt)
 
 	jsonCreated(w, b)
 }
