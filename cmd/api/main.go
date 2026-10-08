@@ -17,6 +17,7 @@ import (
 )
 
 func main() {
+	return
 	_ = godotenv.Load()
 
 	dbURL := os.Getenv("DATABASE_URL")
